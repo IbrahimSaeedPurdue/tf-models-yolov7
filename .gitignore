@@ -99,3 +99,5 @@ ENV/
 
 research/setup.py
 research/object_detection/protos/*
+
+.vscode/
