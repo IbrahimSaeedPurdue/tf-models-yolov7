@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for yolo."""
 
 from absl.testing import parameterized
@@ -36,8 +35,10 @@ class DarknetTest(parameterized.TestCase, tf.test.TestCase):
     """Test creation of ResNet family models."""
     tf.keras.backend.set_image_data_format('channels_last')
 
-    network = darknet.Darknet(
-        model_id=model_id, min_level=3, max_level=5, dilate=dilate)
+    network = darknet.Darknet(model_id=model_id,
+                              min_level=3,
+                              max_level=5,
+                              dilate=dilate)
     self.assertEqual(network.model_id, model_id)
 
     inputs = tf.keras.Input(shape=(input_size, input_size, 3), batch_size=1)
@@ -89,9 +90,12 @@ class DarknetTest(parameterized.TestCase, tf.test.TestCase):
     """Test different input feature dimensions."""
     tf.keras.backend.set_image_data_format('channels_last')
 
-    input_specs = tf.keras.layers.InputSpec(shape=[None, None, None, input_dim])
-    network = darknet.Darknet(
-        model_id='darknet53', min_level=3, max_level=5, input_specs=input_specs)
+    input_specs = tf.keras.layers.InputSpec(
+        shape=[None, None, None, input_dim])
+    network = darknet.Darknet(model_id='darknet53',
+                              min_level=3,
+                              max_level=5,
+                              input_specs=input_specs)
 
     inputs = tf.keras.Input(shape=(224, 224, input_dim), batch_size=1)
     _ = network(inputs)
@@ -123,6 +127,73 @@ class DarknetTest(parameterized.TestCase, tf.test.TestCase):
 
     # If the serialization was successful, the new config should match the old.
     self.assertAllEqual(network.get_config(), new_network.get_config())
+
+
+class ElanTest(parameterized.TestCase, tf.test.TestCase):
+
+  @parameterized.parameters((256, 'elan', 1, 1, False))
+  def test_network_creation(self, input_size, model_id, endpoint_filter_scale,
+                            scale_final, dilate):
+    """Test creation of ResNet family models."""
+    tf.keras.backend.set_image_data_format('channels_last')
+
+    network = darknet.ELAN(model_id=model_id,
+                           min_level=3,
+                           max_level=5,
+                           dilate=dilate)
+    self.assertEqual(network.model_id, model_id)
+
+    inputs = tf.keras.Input(shape=(input_size, input_size, 3), batch_size=1)
+    endpoints = network(inputs)
+
+    # if dilate:
+    #   self.assertAllEqual([
+    #       1, input_size / 2**3, input_size / 2**3, 128 * endpoint_filter_scale
+    #   ], endpoints['3'].shape.as_list())
+    #   self.assertAllEqual([
+    #       1, input_size / 2**3, input_size / 2**3, 256 * endpoint_filter_scale
+    #   ], endpoints['4'].shape.as_list())
+    #   self.assertAllEqual([
+    #       1, input_size / 2**3, input_size / 2**3,
+    #       512 * endpoint_filter_scale * scale_final
+    #   ], endpoints['5'].shape.as_list())
+    # else:
+    #   self.assertAllEqual([
+    #       1, input_size / 2**3, input_size / 2**3, 128 * endpoint_filter_scale
+    #   ], endpoints['3'].shape.as_list())
+    #   self.assertAllEqual([
+    #       1, input_size / 2**4, input_size / 2**4, 256 * endpoint_filter_scale
+    #   ], endpoints['4'].shape.as_list())
+    #   self.assertAllEqual([
+    #       1, input_size / 2**5, input_size / 2**5,
+    #       512 * endpoint_filter_scale * scale_final
+    #   ], endpoints['5'].shape.as_list())
+
+    # expected_p1_shape = [
+    #     1, input_size / 2**1, input_size / 2**1, 64 * endpoint_filter_scale
+    # ]
+    # expected_p2_shape = [
+    #     1, input_size / 2**2, input_size / 2**2, 128 * endpoint_filter_scale
+    # ]
+    expected_p3_shape = [
+        1, input_size / 2**3, input_size / 2**3, 256 * endpoint_filter_scale
+    ]
+    expected_p4_shape = [
+        1, input_size / 2**4, input_size / 2**4, 512 * endpoint_filter_scale
+    ]
+    expected_p5_shape = [
+        1, input_size / 2**5, input_size / 2**5, 1024 * endpoint_filter_scale
+    ]
+
+    # self.assertAllEqual(expected_p1_shape, endpoints['1'].shape.as_list())
+    # self.assertAllEqual(expected_p2_shape, endpoints['2'].shape.as_list())
+    self.assertAllEqual(expected_p3_shape, endpoints['3'].shape.as_list())
+    self.assertAllEqual(expected_p4_shape, endpoints['4'].shape.as_list())
+    self.assertAllEqual(expected_p5_shape, endpoints['5'].shape.as_list())
+
+    print("\n\nENDPOINTS:\n\n")
+    for i, out in endpoints.items():
+      print(i, " - ", out.shape)
 
 
 if __name__ == '__main__':
