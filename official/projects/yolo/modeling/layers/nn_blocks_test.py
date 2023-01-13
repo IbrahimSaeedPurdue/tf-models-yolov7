@@ -319,7 +319,7 @@ class ElanTest(tf.test.TestCase, parameterized.TestCase):
     inputs = tf.keras.Input(shape=(width, height, channels))
 
     filters = channels * 2
-    test_layer = nn_blocks.ELANProcess(filters=filters,
+    test_layer = nn_blocks.ELANBlock(filters=filters,
                                        total_split_convs=total_split_convs,
                                        convs_per_split=convs_per_split,
                                        downsample=downsample,
@@ -348,7 +348,7 @@ class ElanTest(tf.test.TestCase, parameterized.TestCase):
   #   loss = tf.keras.losses.MeanSquaredError()
   #   optimizer = tf.keras.optimizers.SGD()
   #   with tf.device('/CPU:0'):
-  #     test_layer = nn_blocks.ELANProcess(filters=filters, downsample=False)
+  #     test_layer = nn_blocks.ELANBlock(filters=filters, downsample=False)
 
   #   init = tf.random_normal_initializer()
   #   x = tf.Variable(

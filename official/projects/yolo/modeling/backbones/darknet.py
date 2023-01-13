@@ -85,8 +85,8 @@ class BlockConfig:
     self.is_output = is_output
 
 
-class ELANProcessConfig:
-  """Class to store layer config to make code more readable."""
+class ELANBlockConfig:
+  """Class to store configs of layers in ELAN to make code more readable."""
 
   def __init__(self, layer, stack, convs_per_split, total_split_convs, reps,
                filters, kernel_size, strides, padding, activation, downsample,
@@ -112,7 +112,7 @@ class ELANProcessConfig:
 def build_elan_block_specs(config):
   specs = []
   for layer in config:
-    specs.append(ELANProcessConfig(*layer))
+    specs.append(ELANBlockConfig(*layer))
   return specs
 
 
@@ -135,7 +135,7 @@ class LayerBuilder:
     self._layer_dict = {
         'ConvBN': (nn_blocks.ConvBN, self.conv_bn_config_todict),
         'MaxPool': (tf.keras.layers.MaxPool2D, self.maxpool_config_todict),
-        'ELANProcess': (nn_blocks.ELANProcess, self.ELANProcess_config_todict),
+        'ELANBlock': (nn_blocks.ELANBlock, self.ELANBlock_config_todict),
     }
 
   def conv_bn_config_todict(self, config, kwargs):
@@ -166,7 +166,7 @@ class LayerBuilder:
     dictvals.update(kwargs)
     return dictvals
 
-  def ELANProcess_config_todict(self, config, kwargs):
+  def ELANBlock_config_todict(self, config, kwargs):
     dictvals = {
         'filters': config.filters,
         'total_split_convs': config.total_split_convs,
@@ -436,19 +436,19 @@ ELAN_backbone = {
             None, -1, 2, True
         ],
         [
-            'ELANProcess', None, 2, 4, 1, 256, None, None, None, 'swish',
+            'ELANBlock', None, 2, 4, 1, 256, None, None, None, 'swish',
             False, 4, -1, 3, False
         ],
         [
-            'ELANProcess', None, 2, 4, 1, 512, None, None, None, 'swish', True,
+            'ELANBlock', None, 2, 4, 1, 512, None, None, None, 'swish', True,
             4, -1, 3, True
         ],
         [
-            'ELANProcess', None, 2, 4, 1, 1024, None, None, None, 'swish',
+            'ELANBlock', None, 2, 4, 1, 1024, None, None, None, 'swish',
             True, 4, -1, 4, True
         ],
         [
-            'ELANProcess', None, 2, 4, 1, 1024, None, None, None, 'swish',
+            'ELANBlock', None, 2, 4, 1, 1024, None, None, None, 'swish',
             True, 2, -1, 5, True
         ],
     ]
@@ -878,7 +878,7 @@ class ELAN(tf.keras.Model):
       config.filters = int(config.filters * self._width_scale)
       config.repetitions = int(config.repetitions * self._depth_scale)
 
-      if config.layer == "ELANProcess":
+      if config.layer == "ELANBlock":
         x, x_route = self._build_elan_block(stack_outputs[config.route],
                                             config,
                                             name=f'{config.layer}_{i}')
@@ -935,7 +935,7 @@ class ELAN(tf.keras.Model):
 
     print('\n\nconfig: ', config.__dict__)
 
-    x, x_route = nn_blocks.ELANProcess(
+    x, x_route = nn_blocks.ELANBlock(
         filters=config.filters,
         total_split_convs=config.total_split_convs,
         convs_per_split=config.convs_per_split,

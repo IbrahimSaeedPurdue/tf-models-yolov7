@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Feature Pyramid Network and Path Aggregation variants used in YOLO."""
 from typing import Mapping, Optional, Union
 
@@ -26,61 +25,60 @@ from official.vision.modeling.decoders import factory
 # the model config type {regular, tiny, small, large, ... etc}
 YOLO_MODELS = {
     'v4':
-        dict(
-            regular=dict(
-                embed_spp=False,
-                use_fpn=True,
-                max_level_process_len=None,
-                path_process_len=6),
-            tiny=dict(
-                embed_spp=False,
-                use_fpn=False,
-                max_level_process_len=2,
-                path_process_len=1),
-            csp=dict(
-                embed_spp=False,
-                use_fpn=True,
-                max_level_process_len=None,
-                csp_stack=5,
-                fpn_depth=5,
-                path_process_len=6),
-            csp_large=dict(
-                embed_spp=False,
-                use_fpn=True,
-                max_level_process_len=None,
-                csp_stack=7,
-                fpn_depth=7,
-                max_fpn_depth=5,
-                max_csp_stack=5,
-                path_process_len=8,
-                fpn_filter_scale=1),
-            csp_xlarge=dict(
-                embed_spp=False,
-                use_fpn=True,
-                max_level_process_len=None,
-                csp_stack=7,
-                fpn_depth=7,
-                path_process_len=8,
-                fpn_filter_scale=1),
-        ),
+    dict(
+        regular=dict(embed_spp=False,
+                     use_fpn=True,
+                     max_level_process_len=None,
+                     path_process_len=6),
+        tiny=dict(embed_spp=False,
+                  use_fpn=False,
+                  max_level_process_len=2,
+                  path_process_len=1),
+        csp=dict(embed_spp=False,
+                 use_fpn=True,
+                 max_level_process_len=None,
+                 csp_stack=5,
+                 fpn_depth=5,
+                 path_process_len=6),
+        csp_large=dict(embed_spp=False,
+                       use_fpn=True,
+                       max_level_process_len=None,
+                       csp_stack=7,
+                       fpn_depth=7,
+                       max_fpn_depth=5,
+                       max_csp_stack=5,
+                       path_process_len=8,
+                       fpn_filter_scale=1),
+        csp_xlarge=dict(embed_spp=False,
+                        use_fpn=True,
+                        max_level_process_len=None,
+                        csp_stack=7,
+                        fpn_depth=7,
+                        path_process_len=8,
+                        fpn_filter_scale=1),
+    ),
     'v3':
-        dict(
-            regular=dict(
-                embed_spp=False,
-                use_fpn=False,
-                max_level_process_len=None,
-                path_process_len=6),
-            tiny=dict(
-                embed_spp=False,
-                use_fpn=False,
-                max_level_process_len=2,
-                path_process_len=1),
-            spp=dict(
-                embed_spp=True,
-                use_fpn=False,
-                max_level_process_len=2,
-                path_process_len=1),
-        ),
+    dict(
+        regular=dict(embed_spp=False,
+                     use_fpn=False,
+                     max_level_process_len=None,
+                     path_process_len=6),
+        tiny=dict(embed_spp=False,
+                  use_fpn=False,
+                  max_level_process_len=2,
+                  path_process_len=1),
+        spp=dict(embed_spp=True,
+                 use_fpn=False,
+                 max_level_process_len=2,
+                 path_process_len=1),
+    ),
+    'v7':
+    dict(regular=dict(embed_spp=True,
+                      use_fpn=True,
+                      max_level_process_len=None,
+                      csp_stack=5,
+                      fpn_depth=5,
+                      path_process_len=6), ),
 }
 
 
@@ -108,6 +106,7 @@ class YoloFPN(tf.keras.layers.Layer):
                kernel_initializer='VarianceScaling',
                kernel_regularizer=None,
                bias_regularizer=None,
+               process_block='darknet',
                **kwargs):
     """Yolo FPN initialization function (Yolo V4).
 
@@ -150,15 +149,14 @@ class YoloFPN(tf.keras.layers.Layer):
     self._csp_stack = csp_stack
     self._max_csp_stack = max_csp_stack or min(self._max_fpn_depth, csp_stack)
 
-    self._base_config = dict(
-        activation=self._activation,
-        use_sync_bn=self._use_sync_bn,
-        use_separable_conv=self._use_separable_conv,
-        kernel_regularizer=self._kernel_regularizer,
-        kernel_initializer=self._kernel_initializer,
-        bias_regularizer=self._bias_regularizer,
-        norm_epsilon=self._norm_epsilon,
-        norm_momentum=self._norm_momentum)
+    self._base_config = dict(activation=self._activation,
+                             use_sync_bn=self._use_sync_bn,
+                             use_separable_conv=self._use_separable_conv,
+                             kernel_regularizer=self._kernel_regularizer,
+                             kernel_initializer=self._kernel_initializer,
+                             bias_regularizer=self._bias_regularizer,
+                             norm_epsilon=self._norm_epsilon,
+                             norm_momentum=self._norm_momentum)
 
   def get_raw_depths(self, minimum_depth, inputs):
     """Calculates the unscaled depths of the FPN branches.
@@ -312,15 +310,14 @@ class YoloPAN(tf.keras.layers.Layer):
     if max_level_process_len is None:
       self._max_level_process_len = path_process_len
 
-    self._base_config = dict(
-        activation=self._activation,
-        use_sync_bn=self._use_sync_bn,
-        use_separable_conv=self._use_separable_conv,
-        kernel_regularizer=self._kernel_regularizer,
-        kernel_initializer=self._kernel_initializer,
-        bias_regularizer=self._bias_regularizer,
-        norm_epsilon=self._norm_epsilon,
-        norm_momentum=self._norm_momentum)
+    self._base_config = dict(activation=self._activation,
+                             use_sync_bn=self._use_sync_bn,
+                             use_separable_conv=self._use_separable_conv,
+                             kernel_regularizer=self._kernel_regularizer,
+                             kernel_initializer=self._kernel_initializer,
+                             bias_regularizer=self._bias_regularizer,
+                             norm_epsilon=self._norm_epsilon,
+                             norm_momentum=self._norm_momentum)
 
   def build(self, inputs):
     """Use config dictionary to generate all important attributes for head.
@@ -512,18 +509,17 @@ class YoloDecoder(tf.keras.Model):
     self._kernel_regularizer = kernel_regularizer
     self._bias_regularizer = bias_regularizer
 
-    self._base_config = dict(
-        use_spatial_attention=use_spatial_attention,
-        csp_stack=csp_stack,
-        activation=self._activation,
-        use_sync_bn=self._use_sync_bn,
-        use_separable_conv=self._use_separable_conv,
-        fpn_filter_scale=fpn_filter_scale,
-        norm_momentum=self._norm_momentum,
-        norm_epsilon=self._norm_epsilon,
-        kernel_initializer=self._kernel_initializer,
-        kernel_regularizer=self._kernel_regularizer,
-        bias_regularizer=self._bias_regularizer)
+    self._base_config = dict(use_spatial_attention=use_spatial_attention,
+                             csp_stack=csp_stack,
+                             activation=self._activation,
+                             use_sync_bn=self._use_sync_bn,
+                             use_separable_conv=self._use_separable_conv,
+                             fpn_filter_scale=fpn_filter_scale,
+                             norm_momentum=self._norm_momentum,
+                             norm_epsilon=self._norm_epsilon,
+                             kernel_initializer=self._kernel_initializer,
+                             kernel_regularizer=self._kernel_regularizer,
+                             bias_regularizer=self._bias_regularizer)
 
     self._decoder_config = dict(
         path_process_len=self._path_process_len,
@@ -537,11 +533,10 @@ class YoloDecoder(tf.keras.Model):
         for key, value in input_specs.items()
     }
     if self._use_fpn:
-      inter_outs = YoloFPN(
-          fpn_depth=self._fpn_depth,
-          max_fpn_depth=self._max_fpn_depth,
-          max_csp_stack=self._max_csp_stack,
-          **self._base_config)(inputs)
+      inter_outs = YoloFPN(fpn_depth=self._fpn_depth,
+                           max_fpn_depth=self._max_fpn_depth,
+                           max_csp_stack=self._max_csp_stack,
+                           **self._base_config)(inputs)
       outputs = YoloPAN(**self._decoder_config)(inter_outs)
     else:
       inter_outs = None
@@ -559,11 +554,10 @@ class YoloDecoder(tf.keras.Model):
     return self._output_specs
 
   def get_config(self):
-    config = dict(
-        input_specs=self._input_specs,
-        use_fpn=self._use_fpn,
-        fpn_depth=self._fpn_depth,
-        **self._decoder_config)
+    config = dict(input_specs=self._input_specs,
+                  use_fpn=self._use_fpn,
+                  fpn_depth=self._fpn_depth,
+                  **self._decoder_config)
     return config
 
   @classmethod
@@ -593,16 +587,15 @@ def build_yolo_decoder(
   decoder_cfg = model_config.decoder.get()
   norm_activation_config = model_config.norm_activation
 
-  activation = (
-      decoder_cfg.activation if decoder_cfg.activation != 'same' else
-      norm_activation_config.activation)
+  activation = (decoder_cfg.activation if decoder_cfg.activation != 'same' else
+                norm_activation_config.activation)
 
   if decoder_cfg.version is None:  # custom yolo
-    raise ValueError('Decoder version cannot be None, specify v3 or v4.')
+    raise ValueError('Decoder version cannot be None, specify v3, v4 or v7.')
 
   if decoder_cfg.version not in YOLO_MODELS:
     raise ValueError(
-        'Unsupported model version please select from {v3, v4}, '
+        'Unsupported model version please select from {v3, v4, v7}, '
         'or specify a custom decoder config using YoloDecoder in you yaml')
 
   if decoder_cfg.type is None:
@@ -620,14 +613,13 @@ def build_yolo_decoder(
     if cfg_dict[key] is not None:
       base_model[key] = cfg_dict[key]
 
-  base_dict = dict(
-      activation=activation,
-      use_spatial_attention=decoder_cfg.use_spatial_attention,
-      use_separable_conv=decoder_cfg.use_separable_conv,
-      use_sync_bn=norm_activation_config.use_sync_bn,
-      norm_momentum=norm_activation_config.norm_momentum,
-      norm_epsilon=norm_activation_config.norm_epsilon,
-      kernel_regularizer=l2_regularizer)
+  base_dict = dict(activation=activation,
+                   use_spatial_attention=decoder_cfg.use_spatial_attention,
+                   use_separable_conv=decoder_cfg.use_separable_conv,
+                   use_sync_bn=norm_activation_config.use_sync_bn,
+                   norm_momentum=norm_activation_config.norm_momentum,
+                   norm_epsilon=norm_activation_config.norm_epsilon,
+                   kernel_regularizer=l2_regularizer)
 
   base_model.update(base_dict)
   model = YoloDecoder(input_specs, **base_model, **kwargs)
