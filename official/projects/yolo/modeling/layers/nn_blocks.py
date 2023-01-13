@@ -1153,6 +1153,63 @@ class SPP(tf.keras.layers.Layer):
     return layer_config
 
 
+class SPPCSPC(tf.keras.layers.Layer):
+  # e is epsilon??
+  def __init__(self,
+               filters,
+               conv_bn_args,
+               e=0.5,
+               pool_sizes=(5, 9, 13),
+               **kwargs):
+
+    self._filters = filters
+    self._conv_bn_args = conv_bn_args
+    self._e = e
+    self._pool_sizes = pool_sizes
+
+    super().__init__(**kwargs)
+
+  def build(self, input_shape):
+    c = int(2 * self._filters * self._e)
+
+    self._conv1 = ConvBN(c,
+                         kernel_size=(3, 3),
+                         strides=(1, 1),
+                         padding="same",
+                         **self._conv_bn_args)
+
+    self._conv2 = ConvBN(c,
+                         kernel_size=(1, 1),
+                         strides=(1, 1),
+                         padding="same",
+                         **self._conv_bn_args)
+    self._conv3 = ConvBN(c,
+                         kernel_size=(1, 1),
+                         strides=(1, 1),
+                         padding="same",
+                         **self._conv_bn_args)
+
+    self._conv4 = ConvBN(c,
+                         kernel_size=(3, 3),
+                         strides=(1, 1),
+                         padding="same",
+                         **self._conv_bn_args)
+
+    self._spp = SPP(sizes=self._pool_sizes)
+
+    self._csp_route = CSPRoute(c, **self._conv_bn_args)
+    self._csp_connect = CSPConnect(c, drop_first=False, drop_final=False)
+
+  def call(self, inputs):
+    x0, x1 = self._csp_route(input)
+
+    x1 = self._conv2(self._conv1(x1))
+    x1 = self._spp(x1)
+    x1 = self._conv4(self._conv3(x1))
+
+    return self._csp_connect(x0, x1)
+
+
 class SAM(tf.keras.layers.Layer):
   """Spatial Attention Model.
 
@@ -1712,7 +1769,7 @@ class Reorg(tf.keras.layers.Layer):
     )
 
 
-class ELANProcess(tf.keras.layers.Layer):
+class ELANBlock(tf.keras.layers.Layer):
   """
     blah blah blah
   """
@@ -1850,12 +1907,9 @@ class ELANProcess(tf.keras.layers.Layer):
       down_x1 = self.down_conv3(self.down_conv2(inputs))
       inputs = tf.concat([down_x0, down_x1], self._split_axis)
 
-    # CSPROUTE
     x0 = self._conv1(inputs)
     x1 = self._conv2(inputs)
 
-    # ELANPROCESS... 2-4 ELAN is like a 2 extra CSPRoutes with their PROCESS being a 2 CONV and
-    # they all CSPCONNECT at the end.
     split_outputs = []
     x2 = x1
     for conv_group in self._splits_convs:
@@ -1864,7 +1918,6 @@ class ELANProcess(tf.keras.layers.Layer):
 
       split_outputs.append(x2)
 
-    # CSPCONNECT
     x = tf.concat([x0, x1] + split_outputs, self._split_axis)
     x = self._conv3(x)
 
